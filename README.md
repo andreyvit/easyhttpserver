@@ -1,9 +1,9 @@
 Easily run Let's Encrypt-enabled HTTP server in Go
 ==================================================
 
-[![GoDoc](https://godoc.org/github.com/andreyvit/easyhttpserver?status.svg)](https://godoc.org/github.com/andreyvit/easyhttpserver)
+[![Documentation on Go Dev](https://pkg.go.dev/badge/github.com/andreyvit/easyhttpserver)](https://pkg.go.dev/github.com/andreyvit/easyhttpserver)
 
-Production-ready HTTP/HTTPS opinionated server in a few lines of code.
+Production-ready HTTP/HTTPS server in a few lines of code.
 
 Modes:
 
