@@ -3,6 +3,7 @@ package easyhttpserver
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"runtime"
@@ -19,7 +20,8 @@ import (
 type Options struct {
 	// App settings
 
-	// Log is a log.Printf-style function to output logs
+	// Log is a log.Printf-style function to output logs; defaults to log.Printf.
+	// Errors will be prefixed with "ERROR: ", warnings with "WARNING: "
 	Log func(format string, v ...interface{})
 	// DefaultDevPort is the HTTP port to use when running on localhost.
 	DefaultDevPort int
@@ -183,12 +185,16 @@ func Start(handler http.Handler, sopt Options) (*Server, error) {
 	if sopt.GracefulShutdownTimeout == 0 {
 		sopt.GracefulShutdownTimeout = 10 * time.Second
 	}
+	if sopt.Log == nil {
+		sopt.Log = log.Printf
+	}
 
 	errc := make(chan error, 2)
 	srv := &Server{
 		errc:                    errc,
 		gracefulShutdownTimeout: sopt.GracefulShutdownTimeout,
 		baseURL:                 sopt.BaseURL(),
+		log:                     sopt.Log,
 	}
 
 	httpHandler := handler
@@ -293,7 +299,7 @@ func (srv *Server) Wait() error {
 // Shutdown stops accepting new connections, then waits for GracefulShutdownTimeout
 // for existing requests to be finished, and then forcefully closes all connections.
 func (srv *Server) Shutdown() {
-	gracefulShutdown(srv.Log, srv.gracefulShutdownTimeout, func(ctx context.Context) error {
+	gracefulShutdown(srv.log, srv.gracefulShutdownTimeout, func(ctx context.Context) error {
 		err := srv.httpServer.Shutdown(ctx)
 		if srv.httpsServer != nil {
 			err2 := srv.httpsServer.Shutdown(ctx)
@@ -320,9 +326,9 @@ func gracefulShutdown(log func(format string, v ...interface{}), gracePeriod tim
 
 	err := graceful(ctx)
 	if err == context.DeadlineExceeded {
-		log("graceful shutdown timed out, will close connections forcibly")
+		log("WARNING: graceful shutdown timed out, will close connections forcibly")
 	} else if err != nil {
-		panic(err)
+		log("ERROR: graceful shutdown failed: %v", err)
 	}
 }
 
@@ -339,7 +345,5 @@ func parseBool(s string) (v bool, ok bool) {
 
 // Log logs to the opt.Log function provided when starting the server.
 func (srv *Server) Log(format string, args ...interface{}) {
-	if srv.log != nil {
-		srv.log(format, args...)
-	}
+	srv.log(format, args...)
 }
